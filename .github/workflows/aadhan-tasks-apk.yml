@@ -1,0 +1,307 @@
+name: Build Aadhan Tasks Android APK
+on:
+  push:
+    branches: [aadhan-tasks-android-build]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Generate private Android app
+        shell: bash
+        run: |
+          mkdir -p aadhan-task-app/app/src/main/java/in/aadhan/tasks aadhan-task-app/app/src/main/res/layout aadhan-task-app/app/src/main/res/xml aadhan-task-app/app/src/main/res/values
+          cat > aadhan-task-app/settings.gradle <<'EOF'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+          rootProject.name = "AadhanTasks"
+          include ':app'
+          EOF
+          cat > aadhan-task-app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+          cat > aadhan-task-app/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          EOF
+          cat > aadhan-task-app/app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'in.aadhan.tasks'
+              compileSdk 35
+              defaultConfig {
+                  applicationId 'in.aadhan.tasks'
+                  minSdk 26
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0.0'
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          EOF
+          cat > aadhan-task-app/app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application android:label="Aadhan Tasks" android:allowBackup="false"
+                android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+              <activity android:name=".MainActivity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+              <receiver android:name=".TasksWidget" android:exported="false">
+                <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+                <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info"/>
+              </receiver>
+            </application>
+          </manifest>
+          EOF
+          cat > aadhan-task-app/app/src/main/res/xml/widget_info.xml <<'EOF'
+          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+            android:minWidth="250dp" android:minHeight="170dp"
+            android:targetCellWidth="4" android:targetCellHeight="3"
+            android:initialLayout="@layout/widget"
+            android:resizeMode="horizontal|vertical"
+            android:widgetCategory="home_screen" android:updatePeriodMillis="0"/>
+          EOF
+          cat > aadhan-task-app/app/src/main/res/layout/widget.xml <<'EOF'
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="vertical" android:padding="14dp" android:background="#F2F5F4"
+            android:layout_width="match_parent" android:layout_height="match_parent">
+            <TextView android:id="@+id/head" android:text="AADHAN  ·  TASKS  +" android:textStyle="bold"
+              android:textColor="#173D4D" android:textSize="15sp"
+              android:layout_width="match_parent" android:layout_height="34dp"/>
+            <TextView android:id="@+id/count" android:text="Pending tasks" android:textSize="12sp"
+              android:textColor="#53666A" android:layout_width="match_parent" android:layout_height="28dp"/>
+            <LinearLayout android:id="@+id/r1" android:orientation="horizontal" android:gravity="center_vertical"
+              android:layout_width="match_parent" android:layout_height="37dp">
+              <TextView android:id="@+id/c1" android:text="○" android:gravity="center" android:textSize="22sp"
+                android:textColor="#204759" android:layout_width="40dp" android:layout_height="match_parent"/>
+              <TextView android:id="@+id/t1" android:text="Task" android:textSize="13sp" android:maxLines="1"
+                android:ellipsize="end" android:textColor="#204759" android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"/>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/r2" android:orientation="horizontal" android:gravity="center_vertical"
+              android:layout_width="match_parent" android:layout_height="37dp">
+              <TextView android:id="@+id/c2" android:text="○" android:gravity="center" android:textSize="22sp"
+                android:textColor="#204759" android:layout_width="40dp" android:layout_height="match_parent"/>
+              <TextView android:id="@+id/t2" android:text="Task" android:textSize="13sp" android:maxLines="1"
+                android:ellipsize="end" android:textColor="#204759" android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"/>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/r3" android:orientation="horizontal" android:gravity="center_vertical"
+              android:layout_width="match_parent" android:layout_height="37dp">
+              <TextView android:id="@+id/c3" android:text="○" android:gravity="center" android:textSize="22sp"
+                android:textColor="#204759" android:layout_width="40dp" android:layout_height="match_parent"/>
+              <TextView android:id="@+id/t3" android:text="Task" android:textSize="13sp" android:maxLines="1"
+                android:ellipsize="end" android:textColor="#204759" android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"/>
+            </LinearLayout>
+          </LinearLayout>
+          EOF
+          cat > aadhan-task-app/app/src/main/java/in/aadhan/tasks/Tasks.java <<'EOF'
+          package in.aadhan.tasks;
+          import android.appwidget.AppWidgetManager;
+          import android.content.ComponentName;
+          import android.content.Context;
+          import org.json.*;
+          import java.util.*;
+          class Tasks {
+              static final String KEY="items";
+              static JSONArray get(Context c){
+                  String raw=c.getSharedPreferences("aadhan_tasks",0).getString(KEY,"");
+                  if(raw.isEmpty()){
+                      JSONArray a=new JSONArray();
+                      String[] seed={"Add your first task|Internal|2"};
+                      for(String line:seed){
+                          String[] v=line.split("\\|");
+                          JSONObject j=new JSONObject();
+                          try{j.put("id",UUID.randomUUID().toString());j.put("title",v[0]);j.put("ref",v[1]);
+                              j.put("p",Integer.parseInt(v[2]));j.put("date","");j.put("done",false);a.put(j);}catch(Exception ignored){}
+                      }
+                      put(c,a);return a;
+                  }
+                  try{return new JSONArray(raw);}catch(Exception e){return new JSONArray();}
+              }
+              static void put(Context c,JSONArray a){c.getSharedPreferences("aadhan_tasks",0).edit().putString(KEY,a.toString()).commit();TasksWidget.refresh(c);}
+              static ArrayList<JSONObject> sorted(Context c,boolean completed){
+                  JSONArray a=get(c);ArrayList<JSONObject> list=new ArrayList<>();
+                  for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&x.optBoolean("done")==completed)list.add(x);}
+                  list.sort((a1,b1)->{
+                      int p=Integer.compare(a1.optInt("p",3),b1.optInt("p",3));if(p!=0)return p;
+                      String d1=a1.optString("date"),d2=b1.optString("date");
+                      if(d1.isEmpty())d1="9999-12-31";if(d2.isEmpty())d2="9999-12-31";
+                      return d1.compareTo(d2);
+                  });
+                  return list;
+              }
+              static void toggle(Context c,String id){
+                  JSONArray a=get(c);
+                  for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);
+                      if(x!=null&&id.equals(x.optString("id"))){try{x.put("done",!x.optBoolean("done"));}catch(Exception ignored){}break;}
+                  }put(c,a);
+              }
+              static void delete(Context c,String id){
+                  JSONArray a=get(c),out=new JSONArray();
+                  for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&!id.equals(x.optString("id")))out.put(x);}put(c,out);
+              }
+              static void upsert(Context c,JSONObject j){
+                  JSONArray a=get(c);boolean found=false;
+                  for(int i=0;i<a.length();i++){
+                      JSONObject x=a.optJSONObject(i);
+                      if(x!=null&&x.optString("id").equals(j.optString("id"))){try{a.put(i,j);}catch(Exception ignored){}found=true;break;}
+                  }if(!found)a.put(j);put(c,a);
+              }
+          }
+          EOF
+          cat > aadhan-task-app/app/src/main/java/in/aadhan/tasks/TasksWidget.java <<'EOF'
+          package in.aadhan.tasks;
+          import android.app.PendingIntent;
+          import android.appwidget.*;
+          import android.content.*;
+          import android.net.Uri;
+          import android.view.View;
+          import android.widget.RemoteViews;
+          import org.json.JSONObject;
+          import java.util.*;
+          public class TasksWidget extends AppWidgetProvider {
+              static final String ACTION="in.aadhan.tasks.TOGGLE";
+              static void refresh(Context c){
+                  AppWidgetManager m=AppWidgetManager.getInstance(c);
+                  int[] ids=m.getAppWidgetIds(new ComponentName(c,TasksWidget.class));
+                  for(int id:ids)update(c,m,id);
+              }
+              @Override public void onUpdate(Context c,AppWidgetManager m,int[] ids){for(int id:ids)update(c,m,id);}
+              @Override public void onReceive(Context c,Intent i){
+                  super.onReceive(c,i);
+                  if(i!=null&&ACTION.equals(i.getAction()))Tasks.toggle(c,i.getStringExtra("id"));
+              }
+              private static void update(Context c,AppWidgetManager m,int id){
+                  ArrayList<JSONObject> all=Tasks.sorted(c,false);
+                  RemoteViews v=new RemoteViews(c.getPackageName(),R.layout.widget);
+                  v.setTextViewText(R.id.count,all.size()+" open · reference-only privacy");
+                  Intent launch=new Intent(c,MainActivity.class);launch.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  v.setOnClickPendingIntent(R.id.head,PendingIntent.getActivity(c,101,launch,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE));
+                  int[] rows={R.id.r1,R.id.r2,R.id.r3},checks={R.id.c1,R.id.c2,R.id.c3},texts={R.id.t1,R.id.t2,R.id.t3};
+                  for(int n=0;n<3;n++){
+                      if(n>=all.size()){v.setViewVisibility(rows[n],View.GONE);continue;}
+                      JSONObject t=all.get(n);v.setViewVisibility(rows[n],View.VISIBLE);
+                      String ref=t.optString("ref");v.setTextViewText(texts[n],(ref.isEmpty()?"Private task":ref)+" · P"+t.optInt("p",3));
+                      Intent action=new Intent(c,TasksWidget.class);action.setAction(ACTION);
+                      action.setData(Uri.parse("aadhan://task/"+t.optString("id")));
+                      action.putExtra("id",t.optString("id"));
+                      v.setOnClickPendingIntent(checks[n],PendingIntent.getBroadcast(c,300+n,action,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE));
+                      v.setOnClickPendingIntent(texts[n],PendingIntent.getActivity(c,101,launch,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE));
+                  }
+                  m.updateAppWidget(id,v);
+              }
+          }
+          EOF
+          cat > aadhan-task-app/app/src/main/java/in/aadhan/tasks/MainActivity.java <<'EOF'
+          package in.aadhan.tasks;
+          import android.app.*;
+          import android.content.*;
+          import android.graphics.Color;
+          import android.os.*;
+          import android.view.*;
+          import android.widget.*;
+          import org.json.*;
+          import java.util.*;
+          public class MainActivity extends Activity {
+              LinearLayout list,root;boolean done=false;final int INK=0xFF204759;
+              int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
+              TextView text(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextColor(INK);t.setTextSize(size);return t;}
+              void pad(View v,int n){v.setPadding(dp(n),dp(n),dp(n),dp(n));}
+              @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(0xFFF7F8F5);draw();}
+              @Override public void onResume(){super.onResume();if(list!=null)render();}
+              void draw(){
+                  root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(0xFFF7F8F5);pad(root,18);
+                  setContentView(root);
+                  TextView h=text("AADHAN  /  PRACTICE",12);root.addView(h);
+                  TextView title=text("Task tracker",27);title.setTypeface(null,1);root.addView(title);
+                  TextView note=text("Offline task list · widget hides client names",12);root.addView(note);
+                  LinearLayout bar=new LinearLayout(this);bar.setOrientation(0);
+                  Button open=new Button(this);open.setText("Open");bar.addView(open,new LinearLayout.LayoutParams(0,dp(50),1));
+                  Button completed=new Button(this);completed.setText("Completed");bar.addView(completed,new LinearLayout.LayoutParams(0,dp(50),1));
+                  root.addView(bar);
+                  open.setOnClickListener(v->{done=false;render();});completed.setOnClickListener(v->{done=true;render();});
+                  ScrollView sc=new ScrollView(this);list=new LinearLayout(this);list.setOrientation(1);sc.addView(list);
+                  root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
+                  Button add=new Button(this);add.setText("+ Add task");root.addView(add);add.setOnClickListener(v->edit(null));render();
+              }
+              void render(){
+                  list.removeAllViews();ArrayList<JSONObject> tasks=Tasks.sorted(this,done);
+                  TextView summary=text(tasks.size()+(done?" completed":" open")+" tasks",14);pad(summary,10);list.addView(summary);
+                  for(JSONObject x:tasks){
+                      LinearLayout card=new LinearLayout(this);card.setOrientation(0);card.setGravity(Gravity.CENTER_VERTICAL);
+                      card.setBackgroundColor(Color.WHITE);pad(card,8);
+                      LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.bottomMargin=dp(7);list.addView(card,cp);
+                      CheckBox check=new CheckBox(this);check.setChecked(done);card.addView(check);
+                      LinearLayout detail=new LinearLayout(this);detail.setOrientation(1);card.addView(detail,new LinearLayout.LayoutParams(0,-2,1));
+                      TextView label=text(x.optString("title"),15);label.setTypeface(null,1);detail.addView(label);
+                      String meta=x.optString("ref")+" · P"+x.optInt("p",3);
+                      if(!x.optString("date").isEmpty())meta+=" · "+x.optString("date");
+                      TextView sub=text(meta,12);detail.addView(sub);
+                      check.setOnClickListener(v->{Tasks.toggle(this,x.optString("id"));render();});
+                      detail.setOnClickListener(v->edit(x));
+                      Button edit=new Button(this);edit.setText("⋮");card.addView(edit);
+                      edit.setOnClickListener(v->edit(x));
+                  }
+              }
+              EditText field(String value,String hint){
+                  EditText e=new EditText(this);e.setText(value);e.setHint(hint);e.setSingleLine(true);e.setTextSize(15);return e;
+              }
+              void edit(JSONObject existing){
+                  JSONObject x=existing==null?new JSONObject():existing;
+                  LinearLayout form=new LinearLayout(this);form.setOrientation(1);pad(form,12);
+                  EditText title=field(x.optString("title"),"Task description");form.addView(title);
+                  EditText reference=field(x.optString("ref"),"Matter or enquiry reference");form.addView(reference);
+                  EditText date=field(x.optString("date"),"Follow-up date YYYY-MM-DD (optional)");form.addView(date);
+                  Spinner priority=new Spinner(this);
+                  String[] labels={"P1 · Urgent","P2 · High","P3 · Routine"};
+                  priority.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));
+                  priority.setSelection(Math.max(0,Math.min(2,x.optInt("p",2)-1)));form.addView(priority);
+                  AlertDialog.Builder b=new AlertDialog.Builder(this).setTitle(existing==null?"New task":"Edit task").setView(form)
+                    .setNegativeButton("Cancel",null).setPositiveButton("Save",null);
+                  if(existing!=null)b.setNeutralButton("Delete",(a,i)->{Tasks.delete(this,x.optString("id"));render();});
+                  AlertDialog dialog=b.create();dialog.setOnShowListener(a->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+                      String name=title.getText().toString().trim();
+                      if(name.isEmpty()){title.setError("Required");return;}
+                      String dateValue=date.getText().toString().trim();
+                      if(!dateValue.isEmpty()&&!dateValue.matches("\\d{4}-\\d{2}-\\d{2}")){date.setError("Use YYYY-MM-DD");return;}
+                      try{
+                          if(!x.has("id"))x.put("id",UUID.randomUUID().toString());
+                          if(!x.has("done"))x.put("done",false);
+                          x.put("title",name);x.put("ref",reference.getText().toString().trim());
+                          x.put("p",priority.getSelectedItemPosition()+1);x.put("date",dateValue);
+                          Tasks.upsert(this,x);dialog.dismiss();render();
+                      }catch(Exception e){Toast.makeText(this,"Could not save task",Toast.LENGTH_LONG).show();}
+                  }));dialog.show();
+              }
+          }
+          EOF
+      - name: Build installable debug APK
+        run: gradle -p aadhan-task-app --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aadhan-Tasks-Installable-APK
+          path: aadhan-task-app/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
